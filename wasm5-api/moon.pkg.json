@@ -1,0 +1,29 @@
+{
+  "is-main": true,
+  "import": [
+    {
+      "path": "moonbitlang/wasm5/src/core",
+      "alias": "core"
+    },
+    {
+      "path": "moonbitlang/wasm5/src/parse",
+      "alias": "parse"
+    },
+    {
+      "path": "moonbitlang/wasm5/src/runtime",
+      "alias": "runtime"
+    }
+  ],
+  "link": {
+    "wasm-gc": {
+      "exports": [
+        "execute_wasm",
+        "test_add",
+        "cabi_realloc",
+        "cabi_free",
+        "set_byte",
+        "get_byte"
+      ]
+    }
+  }
+}

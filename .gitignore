@@ -18,3 +18,4 @@ test/reference_tests/**/*.json
 test/reference_tests/**/*.wasm
 test/reference_tests/**/*.wat
 memo/
+node_modules/
