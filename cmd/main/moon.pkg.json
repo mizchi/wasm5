@@ -2,12 +2,8 @@
   "is-main": true,
   "import": [
     {
-      "path": "moonbitlang/wasm5/src/runtime",
-      "alias": "wasm5_runtime"
-    },
-    {
-      "path": "moonbitlang/wasm5/src/parse",
-      "alias": "wasm5_parse"
+      "path": "moonbitlang/wasm5/src/component",
+      "alias": "component"
     },
     "moonbitlang/async",
     "moonbitlang/async/fs"

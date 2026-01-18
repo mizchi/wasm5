@@ -5,6 +5,10 @@ target
 .moonagent/
 _build/
 
+# Test-generated files (root directory only)
+/*.wasm
+/*.wat
+
 # Personal notes and configuration
 .claude/
 TODO.md
