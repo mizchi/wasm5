@@ -36,6 +36,7 @@ pub(all) suberror ValidationError {
   ConstantExpressionRequired(String)
   UninitializedLocal(Int)
   UnknownType(Int)
+  UndeclaredFunctionReference(Int)
 }
 pub impl Show for ValidationError
 
