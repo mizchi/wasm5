@@ -31,29 +31,18 @@ fn ComponentRuntime::call_func(
   // Get function name for error messages
   let get_func_name_str = fn() -> String {
     match func {
-      ComponentFunc::Lifted(_, name, _, _) => bytes_to_string(name)
+      ComponentFunc::Lifted(cache) => bytes_to_string(cache.func_name)
       ComponentFunc::Imported(name, _) => bytes_to_string(name)
     }
   }
   match func {
-    ComponentFunc::Lifted(instance_idx, func_name, type_idx, options) => {
-      // Get the function type for type-informed lifting, resolving TypeIndex references
-      let result_types : Array[@core.ComponentResult]? = if type_idx.reinterpret_as_int() <
-        self.types.length() {
-        match self.types[type_idx.reinterpret_as_int()] {
-          @core.ComponentTypeDef::Func(func_type) => {
-            // Resolve TypeIndex references in result types
-            let resolved : Array[@core.ComponentResult] = []
-            for res in func_type.results {
-              resolved.push(self.resolve_result_type(res))
-            }
-            Some(resolved)
-          }
-          _ => None
-        }
-      } else {
-        None
-      }
+    ComponentFunc::Lifted(cache) => {
+      // Use pre-computed cached values instead of recomputing on each call
+      let instance_idx = cache.instance_idx
+      let func_name = cache.func_name
+      let options = cache.options
+      let has_memory = cache.has_memory
+      let result_types = cache.result_types
       guard instance_idx.reinterpret_as_int() < self.core_instances.length() else {
         raise ComponentRuntimeError(
           "invalid core instance index for function '\{get_func_name_str()}'",
@@ -69,16 +58,6 @@ fn ComponentRuntime::call_func(
             "cannot call lifted function '\{get_func_name_str()}' from virtual instance",
           )
       }
-
-      // Check if we have memory/realloc options for string/list support
-      let has_memory = options
-        .iter()
-        .any(fn(opt) {
-          match opt {
-            @core.CanonOpt::Memory(_) => true
-            _ => false
-          }
-        })
 
       // Convert component values to core WASM values (lowering)
       let core_args = if has_memory {

@@ -40,10 +40,21 @@ struct ResourceEntry {
 } derive(Show, Eq)
 
 ///|
+/// Cached data for lifted functions to avoid recomputation on each call
+priv struct LiftedFuncCache {
+  instance_idx : UInt
+  func_name : Bytes
+  options : Array[@core.CanonOpt]
+  // Pre-computed flags
+  has_memory : Bool
+  result_types : Array[@core.ComponentResult]?
+}
+
+///|
 /// A component-level function (either lifted from core or imported)
 enum ComponentFunc {
-  /// Lifted from core function via canon.lift
-  Lifted(UInt, Bytes, UInt, Array[@core.CanonOpt]) // instance_idx, func_name, type_idx, options
+  /// Lifted from core function via canon.lift (with cached data)
+  Lifted(LiftedFuncCache)
   /// Imported from host
   Imported(Bytes, ImportedComponentFunc) // import name, host function
 }

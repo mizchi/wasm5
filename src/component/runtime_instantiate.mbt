@@ -588,12 +588,42 @@ fn ComponentRuntime::process_canon(
       // Find which core instance and function name this refers to
       let core_func = self.resolve_core_func(core_func_idx)
       match core_func {
-        CoreFunc::Aliased(instance_idx, func_name) =>
-          self.funcs.push(
-            ComponentFunc::Lifted(
-              instance_idx, func_name, func_type_idx, options,
-            ),
-          )
+        CoreFunc::Aliased(instance_idx, func_name) => {
+          // Pre-compute has_memory flag to avoid iteration on each call
+          let has_memory = options
+            .iter()
+            .any(fn(opt) {
+              match opt {
+                @core.CanonOpt::Memory(_) => true
+                _ => false
+              }
+            })
+          // Pre-resolve result types to avoid lookup on each call
+          let result_types : Array[@core.ComponentResult]? = if func_type_idx.reinterpret_as_int() <
+            self.types.length() {
+            match self.types[func_type_idx.reinterpret_as_int()] {
+              @core.ComponentTypeDef::Func(func_type) => {
+                let resolved : Array[@core.ComponentResult] = []
+                for res in func_type.results {
+                  resolved.push(self.resolve_result_type(res))
+                }
+                Some(resolved)
+              }
+              _ => None
+            }
+          } else {
+            None
+          }
+          // Create cached lifted function
+          let cache = LiftedFuncCache::{
+            instance_idx,
+            func_name,
+            options,
+            has_memory,
+            result_types,
+          }
+          self.funcs.push(ComponentFunc::Lifted(cache))
+        }
         CoreFunc::Lowered(_, _) =>
           raise ComponentRuntimeError("cannot lift a lowered function")
         CoreFunc::ResourceNew(_)

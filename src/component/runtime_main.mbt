@@ -212,8 +212,8 @@ pub fn ComponentRuntime::get_func_names(
   let result : Array[(Int, String, String)] = []
   for i, func in self.funcs {
     match func {
-      ComponentFunc::Lifted(_, name, _, _) =>
-        result.push((i, bytes_to_string(name), "lifted"))
+      ComponentFunc::Lifted(cache) =>
+        result.push((i, bytes_to_string(cache.func_name), "lifted"))
       ComponentFunc::Imported(name, _) =>
         result.push((i, bytes_to_string(name), "imported"))
     }
@@ -244,7 +244,7 @@ pub fn ComponentRuntime::get_func_name(
     return None
   }
   match self.funcs[idx] {
-    ComponentFunc::Lifted(_, name, _, _) => Some(bytes_to_string(name))
+    ComponentFunc::Lifted(cache) => Some(bytes_to_string(cache.func_name))
     ComponentFunc::Imported(name, _) => Some(bytes_to_string(name))
   }
 }
