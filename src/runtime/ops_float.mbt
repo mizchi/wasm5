@@ -669,16 +669,115 @@ fn op_f32_convert_i32_u(rt : Runtime) -> Runtime {
 }
 
 ///|
-extern "C" fn f32_from_i64(a : Int64) -> Float = "f32_from_i64"
+/// Convert Int64 to Float with proper IEEE 754 rounding (round to nearest, ties to even)
+fn f32_from_i64(a : Int64) -> Float {
+  if a == 0L {
+    return 0.0
+  }
+  let negative = a < 0L
+  let magnitude = if negative {
+    if a == -9223372036854775808L {
+      // Special case: MIN_INT64
+      0x8000000000000000UL
+    } else {
+      (-a).reinterpret_as_uint64()
+    }
+  } else {
+    a.reinterpret_as_uint64()
+  }
+  let result = f32_from_u64_impl(magnitude)
+  if negative { -result } else { result }
+}
 
 ///|
-extern "C" fn f32_from_u64(a : UInt64) -> Float = "f32_from_u64"
+/// Convert UInt64 to Float with proper IEEE 754 rounding (round to nearest, ties to even)
+fn f32_from_u64(a : UInt64) -> Float {
+  f32_from_u64_impl(a)
+}
 
 ///|
-extern "C" fn u64_from_f32(a : Float) -> UInt64 = "u64_from_f32"
+/// Internal implementation for u64 to f32 with proper rounding
+fn f32_from_u64_impl(a : UInt64) -> Float {
+  if a == 0UL {
+    return 0.0
+  }
+  // Find the position of the highest set bit
+  let mut shift = 0
+  let mut temp = a
+  while temp >= 0x100000000UL {
+    temp = temp >> 32
+    shift += 32
+  }
+  while temp >= 0x100UL {
+    temp = temp >> 8
+    shift += 8
+  }
+  while temp >= 2UL {
+    temp = temp >> 1
+    shift += 1
+  }
+  // shift now contains the position of the highest bit (0-indexed from bottom)
+  // f32 mantissa has 23 bits (24 with implicit 1)
+  if shift < 24 {
+    // No rounding needed, fits exactly in mantissa
+    return Float::from_double(a.reinterpret_as_int64().to_double())
+  }
+  // Need to round - keep top 24 bits and round based on the rest
+  let round_shift = shift - 23 // How many bits to shift off
+  let mantissa_bits = a >> round_shift // Top 24 bits
+  let dropped_bits = a & ((1UL << round_shift) - 1UL) // Bits being dropped
+  let half_point = 1UL << (round_shift - 1) // The 0.5 point for rounding
+
+  // Round to nearest, ties to even
+  let rounded = if dropped_bits > half_point {
+    // Round up
+    mantissa_bits + 1UL
+  } else if dropped_bits < half_point {
+    // Round down (truncate)
+    mantissa_bits
+  } else {
+    // Exactly half - round to even (round up if odd)
+    if (mantissa_bits & 1UL) != 0UL {
+      mantissa_bits + 1UL // Odd, round up to make even
+    } else {
+      mantissa_bits // Even, keep as is
+    }
+  }
+
+  // Convert the rounded mantissa back to float
+  // Note: if rounding caused overflow (mantissa_bits was 0xFFFFFF),
+  // the shift would need adjustment, but that's handled by the float arithmetic
+  let result = rounded.reinterpret_as_int64().to_double() * (1UL << round_shift).reinterpret_as_int64().to_double()
+  Float::from_double(result)
+}
 
 ///|
-extern "C" fn u64_from_f64(a : Double) -> UInt64 = "u64_from_f64"
+/// Convert Float to UInt64 with truncation toward zero (pure MoonBit implementation)
+fn u64_from_f32(a : Float) -> UInt64 {
+  let d = a.to_double()
+  u64_from_f64(d)
+}
+
+///|
+/// Convert Double to UInt64 with truncation toward zero (pure MoonBit implementation)
+fn u64_from_f64(a : Double) -> UInt64 {
+  // Handle truncation toward zero for unsigned conversion
+  if a < 0.0 || a.is_nan() {
+    0UL
+  } else if a >= 18446744073709551616.0 {
+    // >= 2^64, overflow to max
+    0xFFFFFFFFFFFFFFFFUL
+  } else if a < 9223372036854775808.0 {
+    // < 2^63, can use signed conversion
+    a.to_int64().reinterpret_as_uint64()
+  } else {
+    // >= 2^63 but < 2^64
+    // Subtract 2^63, convert, then add back
+    let high_bit : Double = 9223372036854775808.0 // 2^63
+    let low_part = (a - high_bit).to_int64().reinterpret_as_uint64()
+    low_part + 0x8000000000000000UL
+  }
+}
 
 ///|
 fn op_f32_convert_i64_s(rt : Runtime) -> Runtime {

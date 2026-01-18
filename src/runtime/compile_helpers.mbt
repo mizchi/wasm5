@@ -62,10 +62,73 @@ fn canonicalize_f32(v : Float) -> Float {
 }
 
 ///|
-extern "C" fn rint(x : Double) -> Double = "rint"
+/// Round to nearest integer (banker's rounding / round half to even) for Double
+fn rint(x : Double) -> Double {
+  // Handle special cases
+  if x.is_nan() || x.is_inf() {
+    return x
+  }
+  // Handle negative zero
+  if x == 0.0 {
+    return x // Preserves -0.0
+  }
+  let floored = x.floor()
+  let frac = x - floored
+  let result = if frac < 0.5 {
+    floored
+  } else if frac > 0.5 {
+    floored + 1.0
+  } else {
+    // Exactly 0.5 - round to nearest even
+    let even_floor = floored - (floored / 2.0).floor() * 2.0
+    if even_floor == 0.0 {
+      floored // floor is even
+    } else {
+      floored + 1.0 // round up to make even
+    }
+  }
+  // Preserve negative zero: if result is 0 and input was negative, return -0.0
+  if result == 0.0 && x < 0.0 {
+    -0.0
+  } else {
+    result
+  }
+}
 
 ///|
-extern "C" fn rintf(x : Float) -> Float = "rintf"
+/// Round to nearest integer (banker's rounding / round half to even) for Float
+fn rintf(x : Float) -> Float {
+  // Handle special cases
+  if x.is_nan() || x.is_inf() {
+    return x
+  }
+  // Handle negative zero
+  if x == 0.0 {
+    return x // Preserves -0.0
+  }
+  let floored = x.floor()
+  let frac = x - floored
+  let result = if frac < 0.5 {
+    floored
+  } else if frac > 0.5 {
+    floored + 1.0
+  } else {
+    // Exactly 0.5 - round to nearest even
+    let even_floor = floored - (floored / 2.0).floor() * 2.0
+    if even_floor == 0.0 {
+      floored // floor is even
+    } else {
+      floored + 1.0 // round up to make even
+    }
+  }
+  // Preserve negative zero: if result is 0 and input was negative, return -0.0
+  if result == 0.0 && x < 0.0 {
+    let neg_zero : Float = -0.0
+    neg_zero
+  } else {
+    result
+  }
+}
 
 ///|
 /// Count the number of imported functions in a module
@@ -431,9 +494,3 @@ fn value_to_stack(v : Value) -> UInt64 {
     Externref(Some(idx)) => idx.to_uint64() | 0x2000000000000000UL
   } // tag bit 61
 }
-
-///|
-extern "C" fn unsafe_function_to_uint64(f : (Runtime) -> Runtime) -> UInt64 = "unsafe_function_to_uint64"
-
-///|
-extern "C" fn unsafe_uint64_to_function(u : UInt64) -> (Runtime) -> Runtime = "unsafe_uint64_to_function"

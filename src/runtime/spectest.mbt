@@ -50,10 +50,8 @@ fn spectest_print_f64_f64(args : Array[Value]) -> Array[Value] {
 fn spectest_print_char(args : Array[Value]) -> Array[Value] {
   guard args.length() == 1
   guard args is [I32(v)]
-  let c = v.reinterpret_as_int().unsafe_to_char()
-  print_char(c)
+  // Print character - in pure MoonBit we just ignore it for now
+  // as there's no print without newline in standard library
+  ignore(v)
   []
 }
-
-///|
-extern "C" fn print_char(c : Char) -> Unit = "print_char"

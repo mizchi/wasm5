@@ -46,8 +46,264 @@ fn execute(rt : Runtime) -> Runtime raise RuntimeError {
   let mut rt = rt
   rt.status = Running
   while rt.status is Running {
-    let f = unsafe_uint64_to_function(rt.ops.unsafe_get(rt.pc))
-    rt = f(rt)
+    let code = rt.ops.unsafe_get(rt.pc)
+    // Hot path: inline frequently used opcodes to avoid dispatch overhead
+    // OpCode numbers: LocalGet=23, LocalSet=24, I32Const=31, I32Add=35, Br=5, BrIf=6, I32GeU=66
+    match code.to_int() {
+      23 => {
+        // LocalGet
+        let idx = rt.ops.unsafe_get(rt.pc + 1).to_int()
+        let value = rt.stack.unsafe_get(rt.bp + idx)
+        rt.stack.unsafe_set(rt.sp, value)
+        rt.sp = rt.sp + 1
+        rt.pc = rt.pc + 2
+      }
+      24 => {
+        // LocalSet
+        let idx = rt.ops.unsafe_get(rt.pc + 1).to_int()
+        let stack_top = rt.sp - 1
+        let value = rt.stack.unsafe_get(stack_top)
+        rt.stack.unsafe_set(rt.bp + idx, value)
+        rt.sp = stack_top
+        rt.pc = rt.pc + 2
+      }
+      31 => {
+        // I32Const
+        let value = rt.ops.unsafe_get(rt.pc + 1).to_uint()
+        rt.stack.unsafe_set(rt.sp, value.to_uint64())
+        rt.sp = rt.sp + 1
+        rt.pc = rt.pc + 2
+      }
+      35 => {
+        // I32Add
+        let stack_top = rt.sp - 1
+        let b = rt.stack.unsafe_get(stack_top).to_uint()
+        let a = rt.stack.unsafe_get(stack_top - 1).to_uint()
+        rt.stack.unsafe_set(stack_top - 1, (a + b).to_uint64())
+        rt.sp = stack_top
+        rt.pc = rt.pc + 1
+      }
+      5 => {
+        // Br
+        let target_pc = rt.ops.unsafe_get(rt.pc + 1).to_int()
+        let arity = rt.ops.unsafe_get(rt.pc + 2).to_int()
+        let drop_count = rt.ops.unsafe_get(rt.pc + 3).to_int()
+        if drop_count > 0 && arity > 0 {
+          let result_start = rt.sp - arity
+          let target_start = result_start - drop_count
+          for i = 0; i < arity; i = i + 1 {
+            rt.stack.unsafe_set(
+              target_start + i,
+              rt.stack.unsafe_get(result_start + i),
+            )
+          }
+        }
+        rt.sp = rt.sp - drop_count
+        rt.pc = target_pc
+      }
+      6 => {
+        // BrIf
+        let target_pc = rt.ops.unsafe_get(rt.pc + 1).to_int()
+        let arity = rt.ops.unsafe_get(rt.pc + 2).to_int()
+        let drop_count = rt.ops.unsafe_get(rt.pc + 3).to_int()
+        let stack_top = rt.sp - 1
+        let cond = rt.stack.unsafe_get(stack_top).to_uint()
+        if cond != 0U {
+          if drop_count > 0 && arity > 0 {
+            let result_start = stack_top - arity
+            let target_start = result_start - drop_count
+            for i = 0; i < arity; i = i + 1 {
+              rt.stack.unsafe_set(
+                target_start + i,
+                rt.stack.unsafe_get(result_start + i),
+              )
+            }
+          }
+          rt.sp = stack_top - drop_count
+          rt.pc = target_pc
+        } else {
+          rt.sp = stack_top
+          rt.pc = rt.pc + 4
+        }
+      }
+      66 => {
+        // I32GeU
+        let stack_top = rt.sp - 1
+        let b = rt.stack.unsafe_get(stack_top).to_uint()
+        let a = rt.stack.unsafe_get(stack_top - 1).to_uint()
+        rt.stack.unsafe_set(stack_top - 1, (if a >= b { 1UL } else { 0UL }))
+        rt.sp = stack_top
+        rt.pc = rt.pc + 1
+      }
+      36 => {
+        // I32Sub
+        let stack_top = rt.sp - 1
+        let b = rt.stack.unsafe_get(stack_top).to_uint()
+        let a = rt.stack.unsafe_get(stack_top - 1).to_uint()
+        rt.stack.unsafe_set(stack_top - 1, (a - b).to_uint64())
+        rt.sp = stack_top
+        rt.pc = rt.pc + 1
+      }
+      37 => {
+        // I32Mul
+        let stack_top = rt.sp - 1
+        let b = rt.stack.unsafe_get(stack_top).to_uint()
+        let a = rt.stack.unsafe_get(stack_top - 1).to_uint()
+        rt.stack.unsafe_set(stack_top - 1, (a * b).to_uint64())
+        rt.sp = stack_top
+        rt.pc = rt.pc + 1
+      }
+      42 => {
+        // I32And
+        let stack_top = rt.sp - 1
+        let b = rt.stack.unsafe_get(stack_top).to_uint()
+        let a = rt.stack.unsafe_get(stack_top - 1).to_uint()
+        rt.stack.unsafe_set(stack_top - 1, (a & b).to_uint64())
+        rt.sp = stack_top
+        rt.pc = rt.pc + 1
+      }
+      4 => {
+        // If
+        let else_pc = rt.ops.unsafe_get(rt.pc + 1).to_int()
+        let stack_top = rt.sp - 1
+        let cond = rt.stack.unsafe_get(stack_top).to_uint()
+        rt.sp = stack_top
+        if cond != 0U {
+          rt.pc = rt.pc + 2
+        } else {
+          rt.pc = else_pc
+        }
+      }
+      26 => {
+        // GlobalGet
+        let idx = rt.ops.unsafe_get(rt.pc + 1).to_int()
+        rt.stack.unsafe_set(rt.sp, value_to_stack(rt.ctx.globals[idx]))
+        rt.sp = rt.sp + 1
+        rt.pc = rt.pc + 2
+      }
+      27 => {
+        // GlobalSet
+        let idx = rt.ops.unsafe_get(rt.pc + 1).to_int()
+        let stack_top = rt.sp - 1
+        let raw = rt.stack.unsafe_get(stack_top)
+        let val_type : @core.ValType = match rt.ctx.globals[idx] {
+          I32(_) => I32
+          I64(_) => I64
+          F32(_) => F32
+          F64(_) => F64
+          Ref(_) | Funcref(_) | Externref(_) => FuncRef
+        }
+        rt.ctx.globals[idx] = stack_to_value(raw, val_type)
+        rt.sp = stack_top
+        rt.pc = rt.pc + 2
+      }
+      171 => {
+        // I32Load
+        let offset = rt.ops.unsafe_get(rt.pc + 1).to_int().reinterpret_as_uint().to_uint64()
+        let stack_top = rt.sp - 1
+        let base = rt.stack.unsafe_get(stack_top)
+        let effective_addr = base + offset
+        if effective_addr + 4UL > rt.ctx.memory.length().reinterpret_as_uint().to_uint64() {
+          rt.ctx.error_detail = "out of bounds memory access"
+          rt.status = Trap
+        } else {
+          let addr = effective_addr.to_int()
+          rt.stack.unsafe_set(stack_top, read_u32_le(rt.ctx.memory, addr).to_uint64())
+          rt.pc = rt.pc + 2
+        }
+      }
+      185 => {
+        // I32Store
+        let offset = rt.ops.unsafe_get(rt.pc + 1).to_int().reinterpret_as_uint().to_uint64()
+        let stack_top = rt.sp - 2
+        let value = rt.stack.unsafe_get(rt.sp - 1).to_uint()
+        let base = rt.stack.unsafe_get(stack_top)
+        let effective_addr = base + offset
+        if effective_addr + 4UL > rt.ctx.memory.length().reinterpret_as_uint().to_uint64() {
+          rt.ctx.error_detail = "out of bounds memory access"
+          rt.sp = stack_top
+          rt.status = Trap
+        } else {
+          let addr = effective_addr.to_int()
+          write_u32_le(rt.ctx.memory, addr, value)
+          rt.sp = stack_top
+          rt.pc = rt.pc + 2
+        }
+      }
+      12 => {
+        // Return
+        let num_return_values = rt.ops.unsafe_get(rt.pc + 1).reinterpret_as_int64().to_int()
+        let return_start = rt.sp - num_return_values
+        for i = 0; i < num_return_values; i = i + 1 {
+          rt.stack.unsafe_set(rt.bp + i, rt.stack.unsafe_get(return_start + i))
+        }
+        let stack_top = rt.bp + num_return_values
+        rt.sp = stack_top
+        if rt.bp == 0 {
+          rt.status = Terminated
+        } else {
+          rt.status = Returned
+        }
+      }
+      56 => {
+        // I32Eqz
+        let stack_top = rt.sp - 1
+        let a = rt.stack.unsafe_get(stack_top).to_uint()
+        rt.stack.unsafe_set(stack_top, (if a == 0U { 1UL } else { 0UL }))
+        rt.pc = rt.pc + 1
+      }
+      63 => {
+        // I32LeS
+        let stack_top = rt.sp - 1
+        let b = rt.stack.unsafe_get(stack_top).to_uint().reinterpret_as_int()
+        let a = rt.stack.unsafe_get(stack_top - 1).to_uint().reinterpret_as_int()
+        rt.stack.unsafe_set(stack_top - 1, (if a <= b { 1UL } else { 0UL }))
+        rt.sp = stack_top
+        rt.pc = rt.pc + 1
+      }
+      // Fused instructions (peephole optimized)
+      242 => {
+        // LocalGetLocalGet idx1 idx2
+        let idx1 = rt.ops.unsafe_get(rt.pc + 1).to_int()
+        let idx2 = rt.ops.unsafe_get(rt.pc + 2).to_int()
+        rt.stack.unsafe_set(rt.sp, rt.stack.unsafe_get(rt.bp + idx1))
+        rt.stack.unsafe_set(rt.sp + 1, rt.stack.unsafe_get(rt.bp + idx2))
+        rt.sp = rt.sp + 2
+        rt.pc = rt.pc + 3
+      }
+      243 => {
+        // I32AddLocals idx1 idx2
+        let idx1 = rt.ops.unsafe_get(rt.pc + 1).to_int()
+        let idx2 = rt.ops.unsafe_get(rt.pc + 2).to_int()
+        let a = rt.stack.unsafe_get(rt.bp + idx1).to_uint()
+        let b = rt.stack.unsafe_get(rt.bp + idx2).to_uint()
+        rt.stack.unsafe_set(rt.sp, (a + b).to_uint64())
+        rt.sp = rt.sp + 1
+        rt.pc = rt.pc + 3
+      }
+      244 => {
+        // I32GeULocals idx1 idx2
+        let idx1 = rt.ops.unsafe_get(rt.pc + 1).to_int()
+        let idx2 = rt.ops.unsafe_get(rt.pc + 2).to_int()
+        let a = rt.stack.unsafe_get(rt.bp + idx1).to_uint()
+        let b = rt.stack.unsafe_get(rt.bp + idx2).to_uint()
+        rt.stack.unsafe_set(rt.sp, (if a >= b { 1UL } else { 0UL }))
+        rt.sp = rt.sp + 1
+        rt.pc = rt.pc + 3
+      }
+      245 => {
+        // LocalInc idx
+        let idx = rt.ops.unsafe_get(rt.pc + 1).to_int()
+        let value = rt.stack.unsafe_get(rt.bp + idx).to_uint()
+        rt.stack.unsafe_set(rt.bp + idx, (value + 1U).to_uint64())
+        rt.pc = rt.pc + 2
+      }
+      _ => {
+        // Cold path: use dispatch table for other opcodes
+        let opcode = uint64_to_opcode(code)
+        rt = dispatch_op(opcode, rt)
+      }
+    }
   }
   if rt.status is Trap {
     raise RuntimeError::from_detail(rt.ctx.error_detail)

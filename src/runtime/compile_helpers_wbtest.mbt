@@ -105,21 +105,13 @@ test "compile helpers tail call return branches" {
 }
 
 ///|
-test "unsafe function to uint64 roundtrip" {
-  // Create a simple test function that increments pc
-  fn test_func(rt : Runtime) -> Runtime {
-    { ..rt, pc: rt.pc + 42 }
+test "opcode to uint64 roundtrip" {
+  // Test that OpCode conversion roundtrips correctly
+  let opcodes : Array[OpCode] = [Nop, I32Add, I64Const, Return, CallLocal]
+  for opcode in opcodes {
+    let code = opcode_to_uint64(opcode)
+    let recovered = uint64_to_opcode(code)
+    // Verify by converting back to uint64
+    assert_eq(opcode_to_uint64(recovered), code)
   }
-
-  // Convert function to UInt64
-  let func_as_uint64 = unsafe_function_to_uint64(test_func)
-
-  // Convert back to function
-  let recovered_func = unsafe_uint64_to_function(func_as_uint64)
-
-  // Test that the recovered function works
-  let rt = make_runtime([], [], 0)
-  let rt = { ..rt, pc: 10 }
-  let rt = recovered_func(rt)
-  assert_eq(rt.pc, 52) // 10 + 42
 }

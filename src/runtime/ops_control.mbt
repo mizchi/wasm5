@@ -1256,3 +1256,48 @@ fn op_global_set(rt : Runtime) -> Runtime {
   rt.ctx.globals[idx] = stack_to_value(raw, val_type)
   { ..rt, sp: stack_top, pc: rt.pc + 2 }
 }
+
+// ============================================================================
+// Fused instructions (peephole optimization)
+// ============================================================================
+
+///|
+/// LocalGetLocalGet idx1 idx2 - push two locals (fused local.get local.get)
+fn op_local_get_local_get(rt : Runtime) -> Runtime {
+  let idx1 = rt.ops.unsafe_get(rt.pc + 1).to_int()
+  let idx2 = rt.ops.unsafe_get(rt.pc + 2).to_int()
+  rt.stack.unsafe_set(rt.sp, rt.stack.unsafe_get(rt.bp + idx1))
+  rt.stack.unsafe_set(rt.sp + 1, rt.stack.unsafe_get(rt.bp + idx2))
+  { ..rt, sp: rt.sp + 2, pc: rt.pc + 3 }
+}
+
+///|
+/// I32AddLocals idx1 idx2 - add two locals, push result (fused local.get local.get i32.add)
+fn op_i32_add_locals(rt : Runtime) -> Runtime {
+  let idx1 = rt.ops.unsafe_get(rt.pc + 1).to_int()
+  let idx2 = rt.ops.unsafe_get(rt.pc + 2).to_int()
+  let a = rt.stack.unsafe_get(rt.bp + idx1).to_uint()
+  let b = rt.stack.unsafe_get(rt.bp + idx2).to_uint()
+  rt.stack.unsafe_set(rt.sp, (a + b).to_uint64())
+  { ..rt, sp: rt.sp + 1, pc: rt.pc + 3 }
+}
+
+///|
+/// I32GeULocals idx1 idx2 - compare two locals (unsigned), push result
+fn op_i32_geu_locals(rt : Runtime) -> Runtime {
+  let idx1 = rt.ops.unsafe_get(rt.pc + 1).to_int()
+  let idx2 = rt.ops.unsafe_get(rt.pc + 2).to_int()
+  let a = rt.stack.unsafe_get(rt.bp + idx1).to_uint()
+  let b = rt.stack.unsafe_get(rt.bp + idx2).to_uint()
+  rt.stack.unsafe_set(rt.sp, (if a >= b { 1UL } else { 0UL }))
+  { ..rt, sp: rt.sp + 1, pc: rt.pc + 3 }
+}
+
+///|
+/// LocalInc idx - increment local by 1 (fused local.get idx; i32.const 1; i32.add; local.set idx)
+fn op_local_inc(rt : Runtime) -> Runtime {
+  let idx = rt.ops.unsafe_get(rt.pc + 1).to_int()
+  let value = rt.stack.unsafe_get(rt.bp + idx).to_uint()
+  rt.stack.unsafe_set(rt.bp + idx, (value + 1U).to_uint64())
+  { ..rt, pc: rt.pc + 2 }
+}

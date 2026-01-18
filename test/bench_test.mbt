@@ -70,6 +70,30 @@ fn get_i64_ops_wasm() -> Bytes {
   b"\x00\x61\x73\x6d\x01\x00\x00\x00\x01\x07\x01\x60\x02\x7e\x7e\x01\x7e\x03\x02\x01\x00\x07\x0b\x01\x07\x69\x36\x34\x5f\x6f\x70\x73\x00\x00\x0a\x0e\x01\x0c\x00\x20\x00\x20\x01\x7e\x20\x00\x20\x01\x7d\x7c\x0b"
 }
 
+///|
+/// Memory load/store benchmark - store and load in a loop
+fn get_memory_wasm() -> Bytes {
+  b"\x00\x61\x73\x6d\x01\x00\x00\x00\x01\x06\x01\x60\x01\x7f\x01\x7f\x03\x02\x01\x00\x05\x03\x01\x00\x01\x07\x15\x02\x03\x6d\x65\x6d\x02\x00\x0b\x6d\x65\x6d\x6f\x72\x79\x5f\x6c\x6f\x6f\x70\x00\x00\x0a\x3d\x01\x3b\x01\x02\x7f\x41\x00\x21\x01\x41\x00\x21\x02\x02\x40\x03\x40\x20\x01\x20\x00\x4f\x0d\x01\x20\x01\x41\x04\x6c\x20\x01\x36\x02\x00\x20\x02\x20\x01\x41\x04\x6c\x28\x02\x00\x6a\x21\x02\x20\x01\x41\x01\x6a\x21\x01\x0c\x00\x0b\x0b\x20\x02\x0b"
+}
+
+///|
+/// Global get/set benchmark - increment global in a loop
+fn get_global_wasm() -> Bytes {
+  b"\x00\x61\x73\x6d\x01\x00\x00\x00\x01\x06\x01\x60\x01\x7f\x01\x7f\x03\x02\x01\x00\x06\x06\x01\x7f\x01\x41\x00\x0b\x07\x0f\x01\x0b\x67\x6c\x6f\x62\x61\x6c\x5f\x6c\x6f\x6f\x70\x00\x00\x0a\x2d\x01\x2b\x01\x01\x7f\x41\x00\x24\x00\x41\x00\x21\x01\x02\x40\x03\x40\x20\x01\x20\x00\x4f\x0d\x01\x23\x00\x41\x01\x6a\x24\x00\x20\x01\x41\x01\x6a\x21\x01\x0c\x00\x0b\x0b\x23\x00\x0b"
+}
+
+///|
+/// Branch (if/else) benchmark - conditional add/sub in a loop
+fn get_branch_wasm() -> Bytes {
+  b"\x00\x61\x73\x6d\x01\x00\x00\x00\x01\x06\x01\x60\x01\x7f\x01\x7f\x03\x02\x01\x00\x07\x0f\x01\x0b\x62\x72\x61\x6e\x63\x68\x5f\x6c\x6f\x6f\x70\x00\x00\x0a\x3d\x01\x3b\x01\x02\x7f\x41\x00\x21\x01\x41\x00\x21\x02\x02\x40\x03\x40\x20\x01\x20\x00\x4f\x0d\x01\x20\x01\x41\x01\x71\x04\x40\x20\x02\x20\x01\x6a\x21\x02\x05\x20\x02\x20\x01\x6b\x21\x02\x0b\x20\x01\x41\x01\x6a\x21\x01\x0c\x00\x0b\x0b\x20\x02\x0b"
+}
+
+///|
+/// Call benchmark - function call in a loop
+fn get_call_wasm() -> Bytes {
+  b"\x00\x61\x73\x6d\x01\x00\x00\x00\x01\x06\x01\x60\x01\x7f\x01\x7f\x03\x03\x02\x00\x00\x07\x0d\x01\x09\x63\x61\x6c\x6c\x5f\x6c\x6f\x6f\x70\x00\x01\x0a\x37\x02\x07\x00\x20\x00\x41\x01\x6a\x0b\x2d\x01\x02\x7f\x41\x00\x21\x01\x41\x00\x21\x02\x02\x40\x03\x40\x20\x01\x20\x00\x4f\x0d\x01\x20\x02\x20\x01\x10\x00\x6a\x21\x02\x20\x01\x41\x01\x6a\x21\x01\x0c\x00\x0b\x0b\x20\x02\x0b"
+}
+
 
 // =============================================================================
 // Benchmark Tests - Parse
@@ -305,6 +329,106 @@ test "bench_full_pipeline_loop" (b : @bench.T) {
         let results = runtime.call_compiled(
           b"count",
           [@wasm5_runtime.Value::I32(100)],
+        )
+        b.keep(results)
+      } catch {
+        _ => ()
+      }
+    },
+  )
+}
+
+// =============================================================================
+// Benchmark Tests - Memory Operations
+// =============================================================================
+
+///|
+test "bench_memory_1000" (b : @bench.T) {
+  let wasm_bytes = get_memory_wasm()
+  let module_ = @wasm5_parse.parse(wasm_bytes)
+  let runtime = @wasm5_runtime.Runtime::load(module_)
+  b.bench(
+    name="memory_1000",
+    fn() {
+      try {
+        let results = runtime.call_compiled(
+          b"memory_loop",
+          [@wasm5_runtime.Value::I32(1000)],
+        )
+        b.keep(results)
+      } catch {
+        _ => ()
+      }
+    },
+  )
+}
+
+// =============================================================================
+// Benchmark Tests - Global Operations
+// =============================================================================
+
+///|
+test "bench_global_1000" (b : @bench.T) {
+  let wasm_bytes = get_global_wasm()
+  let module_ = @wasm5_parse.parse(wasm_bytes)
+  let runtime = @wasm5_runtime.Runtime::load(module_)
+  b.bench(
+    name="global_1000",
+    fn() {
+      try {
+        let results = runtime.call_compiled(
+          b"global_loop",
+          [@wasm5_runtime.Value::I32(1000)],
+        )
+        b.keep(results)
+      } catch {
+        _ => ()
+      }
+    },
+  )
+}
+
+// =============================================================================
+// Benchmark Tests - Branching
+// =============================================================================
+
+///|
+test "bench_branch_1000" (b : @bench.T) {
+  let wasm_bytes = get_branch_wasm()
+  let module_ = @wasm5_parse.parse(wasm_bytes)
+  let runtime = @wasm5_runtime.Runtime::load(module_)
+  b.bench(
+    name="branch_1000",
+    fn() {
+      try {
+        let results = runtime.call_compiled(
+          b"branch_loop",
+          [@wasm5_runtime.Value::I32(1000)],
+        )
+        b.keep(results)
+      } catch {
+        _ => ()
+      }
+    },
+  )
+}
+
+// =============================================================================
+// Benchmark Tests - Function Call Overhead
+// =============================================================================
+
+///|
+test "bench_call_1000" (b : @bench.T) {
+  let wasm_bytes = get_call_wasm()
+  let module_ = @wasm5_parse.parse(wasm_bytes)
+  let runtime = @wasm5_runtime.Runtime::load(module_)
+  b.bench(
+    name="call_1000",
+    fn() {
+      try {
+        let results = runtime.call_compiled(
+          b"call_loop",
+          [@wasm5_runtime.Value::I32(1000)],
         )
         b.keep(results)
       } catch {

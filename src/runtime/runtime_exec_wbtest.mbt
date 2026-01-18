@@ -44,13 +44,8 @@ test "runtime compile start function" {
 
 ///|
 test "runtime execute error branches" {
-  // Test that Trap status causes RuntimeError
-  fn trap_func(rt : Runtime) -> Runtime {
-    rt.ctx.error_detail = "bad"
-    { ..rt, status: Trap }
-  }
-
-  let rt_err = make_runtime([], [unsafe_function_to_uint64(trap_func)], 0)
+  // Test that Trap status causes RuntimeError using Unreachable opcode
+  let rt_err = make_runtime([], [opcode_to_uint64(Unreachable)], 0)
   let rt_err = { ..rt_err, status: Running }
   let mut saw_invalid = false
   let _ = execute(rt_err) catch {
