@@ -124,9 +124,19 @@ async fn run_wasm(
 ) -> Unit {
   let wasm_bytes = @fs.read_file(wasm_path).binary()
   let module_ = @wasm5_parse.parse(wasm_bytes)
-  // Load and compile for C runtime (default)
-  let runtime = @wasm5_cruntime.CRuntime::load(module_)
-  runtime.run_start()
+  // Load and compile
+  let runtime = @wasm5_runtime.Runtime::load(module_) catch {
+    e => {
+      println("Error loading module: \{e}")
+      return
+    }
+  }
+  runtime.run_start() catch {
+    e => {
+      println("Error running start function: \{e}")
+      return
+    }
+  }
   // Find the function's type to parse arguments correctly
   let func_type = find_export_func_type(module_, func_name)
   match func_type {
@@ -150,7 +160,12 @@ async fn run_wasm(
           }
         }
       }
-      let results = runtime.call_compiled(@utf8.encode(func_name), args)
+      let results = runtime.call_compiled(@utf8.encode(func_name), args) catch {
+        e => {
+          println("Error calling '\{func_name}': \{e}")
+          return
+        }
+      }
       // Print results (one per line, just the value)
       for result in results {
         println(format_value(result))

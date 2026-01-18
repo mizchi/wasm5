@@ -20,12 +20,6 @@ pub impl Show for TestFailure with output(self, logger) {
   }
 }
 
-///|
-/// Runtime type selector for test harness
-pub(all) enum RuntimeType {
-  MoonBit // Default MoonBit interpreter (full features)
-  CRuntime // C-based threaded code executor (basic features)
-}
 
 ///|
 /// Trait for WebAssembly runtime executors.
@@ -53,21 +47,6 @@ impl Executor for @wasm5_runtime.Runtime with as_runtime(self) -> @wasm5_runtime
   Some(self)
 }
 
-///|
-/// Implement Executor for C Runtime
-impl Executor for @wasm5_cruntime.CRuntime with call_compiled(
-  self,
-  name : Bytes,
-  args : Array[@wasm5_runtime.Value],
-) -> Array[@wasm5_runtime.Value] raise Error {
-  self.call_compiled(name, args)
-}
-
-///|
-impl Executor for @wasm5_cruntime.CRuntime with as_runtime(_self) -> @wasm5_runtime.Runtime? {
-  // CRuntime is not a MoonBit Runtime
-  None
-}
 
 ///|
 /// Registered module entry for cross-module imports
@@ -90,7 +69,6 @@ priv struct TestContext {
   dir : String
   source_file : String
   failures : Array[TestFailure]
-  runtime_type : RuntimeType
   mut executor : &Executor?
   registry : ModuleRegistry
   resolver : @wasm5_runtime.ImportResolver
@@ -104,12 +82,8 @@ fn TestContext::fail(
   test_type : String,
   message : String,
 ) -> Unit {
-  // Skip whitelisted tests based on runtime type
-  let whitelist = match self.runtime_type {
-    MoonBit => whitelisted_tests
-    CRuntime => cruntime_whitelisted_tests
-  }
-  for entry in whitelist {
+  // Skip whitelisted tests
+  for entry in whitelisted_tests {
     if entry.0 == self.source_file && entry.1.contains(line) {
       self.skipped_count += 1
       return
@@ -125,22 +99,12 @@ async fn parse_and_compile(ctx : TestContext, file_name : String) -> &Executor {
   defer file.close()
   let content = file.read_all().binary()
   let module_ = @wasm5_parse.parse(content)
-  match ctx.runtime_type {
-    MoonBit => {
-      let runtime = @wasm5_runtime.Runtime::load_with_resolver(
-        module_,
-        ctx.resolver,
-      )
-      runtime.run_start()
-      (runtime : &Executor)
-    }
-    CRuntime => {
-      @wasm5_validate.validate_module(module_)
-      let cruntime = @wasm5_cruntime.CRuntime::load(module_)
-      cruntime.run_start()
-      (cruntime : &Executor)
-    }
-  }
+  let runtime = @wasm5_runtime.Runtime::load_with_resolver(
+    module_,
+    ctx.resolver,
+  )
+  runtime.run_start()
+  (runtime : &Executor)
 }
 
 ///|
@@ -1605,7 +1569,6 @@ async fn process_meta(
   json_file : String,
   failures : Array[TestFailure],
   source_file : String,
-  runtime_type? : RuntimeType = MoonBit,
 ) -> Int {
   let file = @fs.open(dir + json_file, mode=ReadOnly)
   defer file.close()
@@ -1618,7 +1581,6 @@ async fn process_meta(
         dir,
         source_file,
         failures,
-        runtime_type,
         executor: None,
         registry,
         resolver,
@@ -1649,7 +1611,6 @@ async fn process_meta(
 pub async fn process_wast_file(
   wast_dir : String,
   wast_file : String,
-  runtime_type? : RuntimeType = MoonBit,
 ) -> (Array[TestFailure], Int) {
   guard wast_file.strip_suffix(".wast") is Some(base_name) else {
     abort("Invalid wast file name: \{wast_file}")
@@ -1682,62 +1643,10 @@ pub async fn process_wast_file(
     }
     return (test_result, 0)
   }
-  let skipped = process_meta(
-    target_dir,
-    json_file,
-    test_result,
-    wast_file,
-    runtime_type~,
-  )
+  let skipped = process_meta(target_dir, json_file, test_result, wast_file)
   @fs.rmdir(target_dir, recursive=true)
   (test_result, skipped)
 }
-
-///|
-/// Process a wast file using C runtime (convenience wrapper)
-pub async fn process_wast_file_cruntime(
-  wast_dir : String,
-  wast_file : String,
-) -> (Array[TestFailure], Int) {
-  process_wast_file(wast_dir, wast_file, runtime_type=CRuntime)
-}
-
-///|
-/// Whitelist for C runtime tests (some tests may have features not yet implemented)
-/// select.wast, br_table.wast: ref.func and ref.null instructions not implemented
-/// traps.wast: missing trap checks and i64/f32/f64 load ops
-/// exports.wast, global.wast: module registration not supported
-/// local_init.wast: reference type result conversion
-/// elem.wast: module registration and some trap handling
-let cruntime_whitelisted_tests : Array[(String, Set[Int])] = [
-  ("select.wast", Set::from_array([251, 252, 258, 259, 279, 280])),
-  (
-    "br_table.wast",
-    Set::from_array([
-      1249, 1250, 1251, 1253, 1254, 1255, 1256, 1257, 1258, 1259, 1260, 1261, 1262,
-      1263, 1264,
-    ]),
-  ),
-  (
-    "traps.wast",
-    Set::from_array([
-      50, 51, 52, 53, 54, 55, 56, 57, 83, 84, 85, 86, 87, 88, 89, 90, 91,
-    ]),
-  ),
-  ("exports.wast", Set::from_array([23, 26, 93, 94, 97])),
-  ("local_init.wast", Set::from_array([21, 22, 23, 74])),
-  (
-    "global.wast",
-    Set::from_array([206, 207, 241, 632, 659, 660, 661, 663, 664]),
-  ),
-  (
-    "elem.wast",
-    Set::from_array([
-      706, 716, 944, 946, 947, 948, 959, 960, 961, 972, 973, 974, 1014, 1016, 1017,
-      1019, 1020, 1022, 1023, 1029, 1030, 1041, 1053,
-    ]),
-  ),
-]
 
 ///|
 /// Whitelist of individual tests to skip (file, line)

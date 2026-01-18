@@ -10,8 +10,8 @@
       "alias": "wasm5_parse"
     },
     {
-      "path": "moonbitlang/wasm5/src/cruntime",
-      "alias": "wasm5_cruntime"
+      "path": "moonbitlang/wasm5/src/runtime",
+      "alias": "wasm5_runtime"
     },
     {
       "path": "moonbitlang/wasm5/src/component",

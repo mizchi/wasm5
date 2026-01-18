@@ -125,23 +125,6 @@ test "bench_load" (b : @bench.T) {
   )
 }
 
-///|
-test "bench_compile" (b : @bench.T) {
-  let wasm_bytes = get_fib_wasm()
-  let module_ = @wasm5_parse.parse(wasm_bytes)
-  let runtime = @wasm5_runtime.Runtime::load(module_)
-  b.bench(
-    name="compile_fib",
-    fn() {
-      try {
-        b.keep(runtime.compile())
-      } catch {
-        _ => ()
-      }
-    },
-  )
-}
-
 // =============================================================================
 // Benchmark Tests - Execution (Core)
 // =============================================================================
@@ -150,13 +133,13 @@ test "bench_compile" (b : @bench.T) {
 test "bench_execute_fib" (b : @bench.T) {
   let wasm_bytes = get_fib_wasm()
   let module_ = @wasm5_parse.parse(wasm_bytes)
-  let runtime = @wasm5_runtime.Runtime::load(module_).compile()
+  let runtime = @wasm5_runtime.Runtime::load(module_)
   b.bench(
     name="execute_fib100",
     fn() {
       try {
-        let (rt, _) = runtime.call_compiled("_start", [])
-        b.keep(rt)
+        let results = runtime.call_compiled(b"_start", [])
+        b.keep(results)
       } catch {
         _ => ()
       }
@@ -168,16 +151,16 @@ test "bench_execute_fib" (b : @bench.T) {
 test "bench_add_simple" (b : @bench.T) {
   let wasm_bytes = get_add_wasm()
   let module_ = @wasm5_parse.parse(wasm_bytes)
-  let runtime = @wasm5_runtime.Runtime::load(module_).compile()
+  let runtime = @wasm5_runtime.Runtime::load(module_)
   b.bench(
     name="execute_add",
     fn() {
       try {
-        let (rt, _) = runtime.call_compiled(
-          "add",
+        let results = runtime.call_compiled(
+          b"add",
           [@wasm5_runtime.Value::I32(1), @wasm5_runtime.Value::I32(2)],
         )
-        b.keep(rt)
+        b.keep(results)
       } catch {
         _ => ()
       }
@@ -193,24 +176,22 @@ test "bench_add_simple" (b : @bench.T) {
 test "bench_loop_1000" (b : @bench.T) {
   let wasm_bytes = get_loop_wasm()
   let module_ = @wasm5_parse.parse(wasm_bytes)
-  let runtime = @wasm5_runtime.Runtime::load(module_).compile()
+  let runtime = @wasm5_runtime.Runtime::load(module_)
   b.bench(
     name="loop_1000",
     fn() {
       try {
-        let (rt, _) = runtime.call_compiled(
-          "count",
+        let results = runtime.call_compiled(
+          b"count",
           [@wasm5_runtime.Value::I32(1000)],
         )
-        b.keep(rt)
+        b.keep(results)
       } catch {
         _ => ()
       }
     },
   )
 }
-
-// nested_loop benchmark removed - WASM binary needs regeneration
 
 // =============================================================================
 // Benchmark Tests - Function Calls
@@ -220,24 +201,22 @@ test "bench_loop_1000" (b : @bench.T) {
 test "bench_factorial_10" (b : @bench.T) {
   let wasm_bytes = get_factorial_wasm()
   let module_ = @wasm5_parse.parse(wasm_bytes)
-  let runtime = @wasm5_runtime.Runtime::load(module_).compile()
+  let runtime = @wasm5_runtime.Runtime::load(module_)
   b.bench(
     name="factorial_10",
     fn() {
       try {
-        let (rt, _) = runtime.call_compiled(
-          "factorial",
+        let results = runtime.call_compiled(
+          b"factorial",
           [@wasm5_runtime.Value::I32(10)],
         )
-        b.keep(rt)
+        b.keep(results)
       } catch {
         _ => ()
       }
     },
   )
 }
-
-// multi_call benchmark removed - WASM binary needs regeneration
 
 // =============================================================================
 // Benchmark Tests - Integer Operations
@@ -247,19 +226,19 @@ test "bench_factorial_10" (b : @bench.T) {
 test "bench_i64_ops" (b : @bench.T) {
   let wasm_bytes = get_i64_ops_wasm()
   let module_ = @wasm5_parse.parse(wasm_bytes)
-  let runtime = @wasm5_runtime.Runtime::load(module_).compile()
+  let runtime = @wasm5_runtime.Runtime::load(module_)
   b.bench(
     name="i64_ops",
     fn() {
       try {
-        let (rt, _) = runtime.call_compiled(
-          "i64_ops",
+        let results = runtime.call_compiled(
+          b"i64_ops",
           [
             @wasm5_runtime.Value::I64(123456789012345),
             @wasm5_runtime.Value::I64(987654321098765),
           ],
         )
-        b.keep(rt)
+        b.keep(results)
       } catch {
         _ => ()
       }
@@ -275,28 +254,22 @@ test "bench_i64_ops" (b : @bench.T) {
 test "bench_float_ops" (b : @bench.T) {
   let wasm_bytes = get_float_ops_wasm()
   let module_ = @wasm5_parse.parse(wasm_bytes)
-  let runtime = @wasm5_runtime.Runtime::load(module_).compile()
+  let runtime = @wasm5_runtime.Runtime::load(module_)
   b.bench(
     name="float_sqrt_hypot",
     fn() {
       try {
-        let (rt, _) = runtime.call_compiled(
-          "float_ops",
+        let results = runtime.call_compiled(
+          b"float_ops",
           [@wasm5_runtime.Value::F64(3.0), @wasm5_runtime.Value::F64(4.0)],
         )
-        b.keep(rt)
+        b.keep(results)
       } catch {
         _ => ()
       }
     },
   )
 }
-
-// =============================================================================
-// Benchmark Tests - Memory Operations
-// =============================================================================
-
-// memory_sum benchmark removed - WASM binary needs regeneration
 
 // =============================================================================
 // Benchmark Tests - Full Pipeline
@@ -310,9 +283,9 @@ test "bench_full_pipeline" (b : @bench.T) {
     fn() {
       try {
         let module_ = @wasm5_parse.parse(wasm_bytes)
-        let runtime = @wasm5_runtime.Runtime::load(module_).compile()
-        let (rt, _) = runtime.call_compiled("_start", [])
-        b.keep(rt)
+        let runtime = @wasm5_runtime.Runtime::load(module_)
+        let results = runtime.call_compiled(b"_start", [])
+        b.keep(results)
       } catch {
         _ => ()
       }
@@ -328,12 +301,12 @@ test "bench_full_pipeline_loop" (b : @bench.T) {
     fn() {
       try {
         let module_ = @wasm5_parse.parse(wasm_bytes)
-        let runtime = @wasm5_runtime.Runtime::load(module_).compile()
-        let (rt, _) = runtime.call_compiled(
-          "count",
+        let runtime = @wasm5_runtime.Runtime::load(module_)
+        let results = runtime.call_compiled(
+          b"count",
           [@wasm5_runtime.Value::I32(100)],
         )
-        b.keep(rt)
+        b.keep(results)
       } catch {
         _ => ()
       }

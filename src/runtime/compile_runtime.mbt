@@ -33,9 +33,8 @@ pub fn Runtime::run_start(self : Runtime) -> Unit raise RuntimeError {
         // (e.g., calls to unimplemented imported functions)
         let _ = execute(rt) catch { _ => rt }
 
-        // Return with cleared stack
+        // Clear stack
         rt.sp = 0
-        return rt
       }
     }
     None => ()
