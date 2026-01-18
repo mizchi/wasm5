@@ -332,7 +332,7 @@ pub fn ImportResolver::get_funcref_wrapper(
 
 ///|
 /// Initial stack capacity (can grow as needed)
-let initial_stack_capacity : Int = 1024
+let initial_stack_capacity : Int = 65536
 
 ///|
 /// Runtime structure for WebAssembly execution.

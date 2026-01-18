@@ -46,12 +46,21 @@ fn spectest_print_f64_f64(args : Array[Value]) -> Array[Value] {
   []
 }
 
+///| Global buffer for spectest output
+let spectest_output_buffer : Array[Char] = []
+
 ///|
 fn spectest_print_char(args : Array[Value]) -> Array[Value] {
   guard args.length() == 1
   guard args is [I32(v)]
-  // Print character - in pure MoonBit we just ignore it for now
-  // as there's no print without newline in standard library
-  ignore(v)
+  // Buffer character for later output
+  let c = v.reinterpret_as_int().unsafe_to_char()
+  spectest_output_buffer.push(c)
+  // Flush on newline
+  if c == '\n' {
+    let s = String::from_array(spectest_output_buffer)
+    spectest_output_buffer.clear()
+    println(s.substring(end=s.length() - 1)) // Remove the trailing newline since println adds one
+  }
   []
 }
