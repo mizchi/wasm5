@@ -5544,7 +5544,7 @@ fn build_module(wat : WatModule) -> @core.Module raise WatError {
     datas.push({
       mem_idx,
       offset: @core.Expr::{ instrs: offset_instrs },
-      init: data.init.sub(),
+      init: data.init[:],
       is_active: data.is_active,
     })
   }

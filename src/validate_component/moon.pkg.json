@@ -1,5 +1,0 @@
-{
-  "import": [
-    "moonbitlang/wasm5/src/core"
-  ]
-}

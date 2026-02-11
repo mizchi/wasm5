@@ -1,9 +1,9 @@
 // Generated using `moon info`, DON'T EDIT IT
-package "moonbitlang/wasm5/src/validate_component"
+package "mizchi/wasmx/validate_component"
 
-import(
-  "moonbitlang/wasm5/src/core"
-)
+import {
+  "mizchi/wasmx/core",
+}
 
 // Values
 pub fn has_dot_character(String) -> Bool

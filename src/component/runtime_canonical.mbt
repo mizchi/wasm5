@@ -69,7 +69,6 @@ fn CanonicalContext::call_post_return(
           let _ = self.runtime.call_compiled(name, flat_results) catch {
             e => raise ComponentRuntimeError("post-return call failed: \{e}")
           }
-
         }
       }
     }

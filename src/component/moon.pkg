@@ -1,0 +1,6 @@
+import {
+  "mizchi/wasmx/core" @core,
+  "mizchi/wasmx/parse" @parse,
+  "mizchi/wasmx/runtime" @runtime,
+  "moonbitlang/core/encoding/utf8" @utf8,
+}

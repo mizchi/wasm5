@@ -21,15 +21,15 @@ fn string_to_bytes(s : String) -> Bytes {
 }
 
 ///|
-/// Convert a string to UTF-8 bytes (using @encoding/utf8)
+/// Convert a string to UTF-8 bytes (using @utf8)
 fn string_to_utf8(s : String) -> Bytes {
-  @encoding/utf8.encode(s)
+  @utf8.encode(s)
 }
 
 ///|
-/// Convert UTF-8 bytes to a string (using @encoding/utf8)
+/// Convert UTF-8 bytes to a string (using @utf8)
 fn utf8_to_string(bytes : Bytes) -> String {
-  @encoding/utf8.decode(bytes) catch {
+  @utf8.decode(bytes) catch {
     _ => ""
   }
 }

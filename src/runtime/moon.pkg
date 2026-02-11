@@ -1,0 +1,14 @@
+import {
+  "mizchi/wasmx/core" @core,
+  "mizchi/wasmx/compile",
+}
+
+import {
+  "moonbitlang/async",
+  "moonbitlang/async/fs",
+  "mizchi/wasmx/parse",
+} for "test"
+
+options(
+  "native-stub": [ "print.c", "op.c" ],
+)

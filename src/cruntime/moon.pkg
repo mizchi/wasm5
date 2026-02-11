@@ -1,0 +1,10 @@
+import {
+  "mizchi/wasmx/core",
+  "mizchi/wasmx/compile",
+  "mizchi/wasmx/runtime",
+  "moonbitlang/core/encoding/utf8",
+}
+
+options(
+  "native-stub": [ "op.c" ],
+)

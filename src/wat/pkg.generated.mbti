@@ -1,9 +1,9 @@
 // Generated using `moon info`, DON'T EDIT IT
-package "moonbitlang/wasm5/src/wat"
+package "mizchi/wasmx/wat"
 
-import(
-  "moonbitlang/wasm5/src/core"
-)
+import {
+  "mizchi/wasmx/core",
+}
 
 // Values
 pub fn wast_to_modules(String) -> Array[@core.Module] raise WatError

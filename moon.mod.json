@@ -1,15 +1,19 @@
 {
-  "name": "moonbitlang/wasm5",
+  "name": "mizchi/wasmx",
   "version": "0.1.0",
   "deps": {
-    "moonbitlang/async": "0.14.2",
-    "moonbitlang/x": "0.4.38"
+    "moonbitlang/async": "0.16.6",
+    "moonbitlang/x": "0.4.40"
   },
   "readme": "README.mbt.md",
-  "repository": "",
+  "repository": "https://github.com/mizchi/wasmx",
   "license": "Apache-2.0",
-  "keywords": [],
-  "description": "",
-  "source": ".",
+  "keywords": [
+    "wasm",
+    "webassembly",
+    "vm"
+  ],
+  "description": "Experimental fork of moonbitlang/wasm5. WebAssembly VM built with pure MoonBit.",
+  "source": "src",
   "preferred-target": "native"
 }

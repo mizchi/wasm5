@@ -1,10 +1,10 @@
 // Generated using `moon info`, DON'T EDIT IT
-package "moonbitlang/wasm5/src/component"
+package "mizchi/wasmx/component"
 
-import(
-  "moonbitlang/wasm5/src/core"
-  "moonbitlang/wasm5/src/runtime"
-)
+import {
+  "mizchi/wasmx/core",
+  "mizchi/wasmx/runtime",
+}
 
 // Values
 pub fn is_component_binary(Bytes) -> Bool

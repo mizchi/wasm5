@@ -1,9 +1,9 @@
 // Generated using `moon info`, DON'T EDIT IT
-package "moonbitlang/wasm5/src/validate"
+package "mizchi/wasmx/validate"
 
-import(
-  "moonbitlang/wasm5/src/core"
-)
+import {
+  "mizchi/wasmx/core",
+}
 
 // Values
 pub fn validate_module(@core.Module) -> Unit raise ValidationError

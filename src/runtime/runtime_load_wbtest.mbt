@@ -18,7 +18,7 @@ test "runtime load with resolver" {
     nullable: true,
     table64: false,
   }
-  let data_view = b"hi".sub()
+  let data_view = b"hi"[:]
   let module_ : @core.Module = {
     types: [func_type],
     type_groups: [],

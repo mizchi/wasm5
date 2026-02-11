@@ -14,7 +14,6 @@ fn validate_instruction_parametric(
         raise ValidationError::TypeMismatch("expected value on stack for drop")
       } else {
         let _ = stack.unsafe_pop()
-
       }
     Select => {
       // Untyped select (0x1B): only numeric types allowed

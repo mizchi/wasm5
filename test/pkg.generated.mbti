@@ -1,5 +1,5 @@
 // Generated using `moon info`, DON'T EDIT IT
-package "moonbitlang/wasm5/test"
+package "mizchi/typescript/test"
 
 // Values
 pub async fn process_component_wast_file(String, String) -> (Array[TestFailure], Int)

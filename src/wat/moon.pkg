@@ -1,0 +1,15 @@
+import {
+  "moonbitlang/core/encoding/utf8",
+  "moonbitlang/core/math",
+  "moonbitlang/core/strconv",
+  "mizchi/wasmx/core" @core,
+  "mizchi/wasmx/encode" @encode,
+  "mizchi/wasmx/parse" @parse,
+}
+
+import {
+  "moonbitlang/async",
+  "moonbitlang/async/fs",
+  "moonbitlang/async/process",
+  "moonbitlang/async/io",
+} for "test"

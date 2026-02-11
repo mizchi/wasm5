@@ -30,7 +30,6 @@ pub fn Runtime::run_start(self : Runtime) -> Unit raise RuntimeError {
         // Execute start function, ignoring runtime errors
         // (e.g., calls to unimplemented imported functions)
         let _ = execute(rt) catch { _ => rt }
-
       }
     }
     None => ()

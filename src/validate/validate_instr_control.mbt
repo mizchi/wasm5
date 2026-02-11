@@ -300,11 +300,9 @@ fn validate_instruction_control(
               raise ValidationError::UnknownTag(tag_int)
             }
             let _ = try_ctx.get_label_types(label_idx)
-
           }
           CatchAll(label_idx) | CatchAllRef(label_idx) => {
             let _ = try_ctx.get_label_types(label_idx)
-
           }
         }
       }

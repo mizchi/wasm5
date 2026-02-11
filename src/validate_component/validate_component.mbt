@@ -389,7 +389,6 @@ fn validate_sections_with_size_and_parent(
       }
       _ => {
         let _ = validate_section_with_size(ctx, section)
-
       }
     }
   }
@@ -1668,7 +1667,6 @@ fn validate_canon_options(
     }
   }
   let _ = ctx
-
 }
 
 ///|

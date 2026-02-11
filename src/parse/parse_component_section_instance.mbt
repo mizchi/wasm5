@@ -90,7 +90,6 @@ fn parse_inline_export(
       let hash_len = parser.read_u32_leb128()
       for _ in 0U..<hash_len {
         let _ = parser.read_byte()
-
       }
       parser.read_name()
     }
@@ -99,7 +98,6 @@ fn parse_inline_export(
       let hash_len = parser.read_u32_leb128()
       for _ in 0U..<hash_len {
         let _ = parser.read_byte()
-
       }
       parser.read_name()
     }

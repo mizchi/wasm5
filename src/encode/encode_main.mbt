@@ -247,8 +247,8 @@ fn encode_custom_payload(custom : @core.CustomSection) -> Array[Byte] {
     payload,
     encode_u32_leb128(custom.name.length().reinterpret_as_uint()),
   )
-  append_bytesview(payload, custom.name.sub())
-  append_bytesview(payload, custom.data.sub())
+  append_bytesview(payload, custom.name[:])
+  append_bytesview(payload, custom.data[:])
   payload
 }
 

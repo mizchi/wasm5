@@ -1,0 +1,11 @@
+import {
+  "mizchi/wasmx/core" @core,
+  "mizchi/wasmx/validate" @validate,
+}
+
+import {
+  "moonbitlang/async",
+  "moonbitlang/async/fs",
+  "moonbitlang/async/stdio",
+  "moonbitlang/x/path",
+} for "test"

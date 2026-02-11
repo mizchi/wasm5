@@ -2,19 +2,19 @@
   "is-main": true,
   "import": [
     {
-      "path": "moonbitlang/wasm5/src/core",
+      "path": "mizchi/typescript/src/core",
       "alias": "wasm5_core"
     },
     {
-      "path": "moonbitlang/wasm5/src/parse",
+      "path": "mizchi/typescript/src/parse",
       "alias": "wasm5_parse"
     },
     {
-      "path": "moonbitlang/wasm5/src/cruntime",
+      "path": "mizchi/typescript/src/cruntime",
       "alias": "wasm5_cruntime"
     },
     {
-      "path": "moonbitlang/wasm5/src/component",
+      "path": "mizchi/typescript/src/component",
       "alias": "component"
     },
     "moonbitlang/async",

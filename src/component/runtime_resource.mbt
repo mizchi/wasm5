@@ -85,7 +85,6 @@ fn ComponentRuntime::call_destructor(
               ]) catch {
                 _ => []
               }
-
             }
             _ => ()
           }

@@ -971,7 +971,6 @@ fn validate_elem_init_const_expr(
             )
           }
           let _ = stack.unsafe_pop()
-
         }
         stack.push(
           @core.ValType::Ref(@core.RefType::TypeIndex(type_idx_int), false),
@@ -1059,7 +1058,6 @@ fn validate_elem_init_const_expr(
         }
         for i = 0; i < length; i = i + 1 {
           let _ = stack.unsafe_pop()
-
         }
         stack.push(
           @core.ValType::Ref(@core.RefType::TypeIndex(type_idx_int), false),

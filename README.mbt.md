@@ -1,4 +1,6 @@
-# wasm5: WebAssembly Virtual Machine in MoonBit
+# wasmx: WebAssembly Virtual Machine in MoonBit
+
+> **Note**: This is an experimental fork of [moonbitlang/wasm5](https://github.com/niceball/wasm5.mbt). Built with pure MoonBit (no external C dependencies).
 
 A WebAssembly virtual machine implementation in MoonBit.
 
